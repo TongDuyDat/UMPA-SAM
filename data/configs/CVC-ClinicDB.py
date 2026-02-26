@@ -2,7 +2,7 @@
 import albumentations as A
 
 DATASET_SOURCE = "data/data_benmarks/CVC-ClinicDB"
-IMAGE_SIZE = (256, 256)
+IMAGE_SIZE = (1024, 1024)
 NORMALIZE = True
 
 TRANSFORM_PIPELINE = {
