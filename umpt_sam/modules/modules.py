@@ -420,6 +420,19 @@ class PromptPerturbation(nn.Module):
         # Point params
         sigma_p: float = 3.0,
         q_flip: float = 0.05,
+        # Mask params
+        dilate_radius: int = 1,
+        erode_radius: int = 1,
+        warp_strength: float = 0.02,
+        p_dilate: float = 0.2,
+        p_erode: float = 0.2,
+        p_warp: float = 0.2,
+        min_area_ratio: float = 0.3,
+        # Text params
+        sigma_t: float = 0.1,
+        p_noise: float = 0.5,
+        p_synonym: float = 0.3,
+        embed_dim: int = 512,
     ):
         super().__init__()
         self.bbox_perturbation = BBoxPerturbation(
@@ -432,12 +445,29 @@ class PromptPerturbation(nn.Module):
             sigma_p=sigma_p,
             q_flip=q_flip,
         )
-    
+        self.text_perturbation = TextPerturbation(
+            sigma_t=sigma_t,
+            p_noise=p_noise,
+            p_synonym=p_synonym,
+            embed_dim=embed_dim,
+        )
+        self.mask_perturbation = MaskPerturbation(
+            dilate_radius=dilate_radius,
+            erode_radius=erode_radius,
+            warp_strength=warp_strength,
+            p_dilate=p_dilate,
+            p_erode=p_erode,
+            p_warp=p_warp,
+            min_area_ratio=min_area_ratio,
+        )
     def forward(
         self,
         bbox: Optional[torch.Tensor] = None,
         points: Optional[torch.Tensor] = None,
         point_labels: Optional[torch.Tensor] = None,
+        text: Optional[str] = None,
+        mask: Optional[torch.Tensor] = None,
+        text_embeddings: Optional[torch.Tensor] = None,
     ) -> dict:
         """
         Args:
@@ -459,7 +489,16 @@ class PromptPerturbation(nn.Module):
             )
             result["points"] = perturbed_points
             result["point_labels"] = perturbed_labels
-        
+        if text is not None or text_embeddings is not None:
+            perturbed_embedding, perturbed_text = self.text_perturbation(
+                embedding=text_embeddings, text=text
+            )
+            result["text_embedding"] = perturbed_embedding
+            result["text"] = perturbed_text
+            
+        if mask is not None:
+            result["mask"] = self.mask_perturbation(mask)
+            
         return result
 
 # ============== Test ==============
