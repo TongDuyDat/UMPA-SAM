@@ -25,7 +25,7 @@ class UnifiedPromptFusionEncoder(nn.Module):
             nn.Linear(self.embed_dim//4, self.scoting_network_hidden_dim),
         )
 
-    def forward(self, embeddings: Dict[str, torch.Tensor]):
+    def forward(self, embeddings: Dict[str, torch.Tensor], return_weights=False):
         """
             Args:
                 embeddings: Dict[str, torch.Tensor] = {
@@ -49,6 +49,10 @@ class UnifiedPromptFusionEncoder(nn.Module):
         weights = torch.softmax(scores, dim=1) 
         embeds = torch.cat(embeds, dim=1)
         e_fused = torch.sum(weights * embeds, dim=1)
+
+        if return_weights:
+            return e_fused, weights
+        
         return e_fused
 
 # if __name__ == "__main__":
@@ -64,5 +68,6 @@ class UnifiedPromptFusionEncoder(nn.Module):
 #         "text_embeddings": text_embeddings,
 #     }
 #     upf = UnifiedPromptFusionEncoder()
-#     e_fused = upf(embeddings)
+#     e_fused, weights = upf(embeddings, return_weights=True)
 #     print(e_fused.shape)
+#     print(weights.shape)

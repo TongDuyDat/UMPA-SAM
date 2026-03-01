@@ -102,20 +102,13 @@ class MultiPromptConsistencyLoss(nn.Module):
 
 # if __name__ == "__main__":
 #     loss_fn = MultiPromptConsistencyLoss(sigmoid_input=True)
-
-    
-#     # 1. Thử với Logits ngẫu nhiên (randn thay vì rand)
-#     # randn có cả giá trị âm và dương, sau sigmoid sẽ ra đủ dải [0, 1]
 #     dice_loss = DiceLoss()
 #     masks_random = torch.randn(4, 5, 1, 256, 256) 
 #     masks_random_for_dice = torch.randn(4, 1, 256, 256)
 #     targets_random = torch.randn(4, 1,256, 256)
 #     print(dice_loss(masks_random_for_dice, targets_random))
 #     loss_rand = loss_fn(masks_random)
-#     print(f"Loss với dữ liệu ngẫu nhiên (nên cao): {loss_rand.item():.4f}")
 
-#     # 2. Thử với các mặt nạ giống hệt nhau (Consistency hoàn hảo)
 #     mask_single = torch.randn(4, 1, 1, 256, 256)
 #     masks_identical = mask_single.expand(-1, 5, -1, -1, -1)
 #     loss_id = loss_fn(masks_identical)
-#     print(f"Loss với dữ liệu giống hệt (phải gần 0): {loss_id.item():.4f}")
