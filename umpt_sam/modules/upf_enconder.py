@@ -2,8 +2,23 @@ import torch
 from torch import nn
 from typing import Dict
 
+from ..config.model_config import UPFEConfig
+
 # Unified Prompt Fusion Encoder
 class UnifiedPromptFusionEncoder(nn.Module):
+    @classmethod
+    def from_config(
+        cls,
+        upfe_config: UPFEConfig,
+        scoting_network: nn.Module = None,
+    ) -> "UnifiedPromptFusionEncoder":
+        """Build the encoder from a typed UPFEConfig dataclass."""
+        return cls(
+            scoting_network=scoting_network,
+            embed_dim=upfe_config.embed_dim,
+            scoting_network_hidden_dim=upfe_config.scoring_hidden_dim,
+        )
+
     def __init__(self,
         scoting_network: nn.Module = None,
         embed_dim = 256,

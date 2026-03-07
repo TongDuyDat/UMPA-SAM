@@ -6,6 +6,7 @@ from sam3.model.vl_combiner import SAM3VLBackbone
 from sam3.sam.mask_decoder import MaskDecoder
 from sam3.sam.prompt_encoder import PromptEncoder
 
+from ..config.model_config import UMPAModelConfig
 from .upf_enconder import UnifiedPromptFusionEncoder
 from .modules import PromptPerturbation
 
@@ -45,6 +46,33 @@ class UMPAModel(nn.Module):
     pred_masks   (used by MPCL across K perturbations)
     """
 
+    @classmethod
+    def from_config(
+        cls,
+        image_encoder: SAM3VLBackbone,
+        prompt_encoder: PromptEncoder,
+        mask_decoder: MaskDecoder,
+        model_config: UMPAModelConfig,
+        perturbation_cfg: Optional[dict] = None,
+    ) -> "UMPAModel":
+        """Build UMPAModel from the typed config objects."""
+        model = cls(
+            image_encoder=image_encoder,
+            prompt_encoder=prompt_encoder,
+            mask_decoder=mask_decoder,
+            embed_dim=model_config.embed_dim,
+            freeze_image_encoder=model_config.freeze_image_encoder,
+            upfe_hidden_dim=model_config.upfe.scoring_hidden_dim,
+            perturbation_cfg=None,
+        )
+        model.upfe_encoder = UnifiedPromptFusionEncoder.from_config(model_config.upfe)
+        model.perturbation = PromptPerturbation.from_config(
+            model_config.mppg,
+            **(perturbation_cfg or {}),
+        )
+        model.model_config = model_config
+        return model
+
     def __init__(
         self,
         image_encoder: SAM3VLBackbone,
@@ -67,6 +95,7 @@ class UMPAModel(nn.Module):
         perturbation_cfg   : kwargs forwarded to PromptPerturbation (None = defaults)
         """
         super().__init__()
+        self.model_config: Optional[UMPAModelConfig] = None
 
         # ── 1. SAM3 ViT Image Encoder ──────────────────────────────────────
         self.image_encoder = image_encoder

@@ -3,6 +3,8 @@ import torch.nn as nn
 import math
 from typing import Tuple, Optional
 
+from ..config.model_config import MPPGConfig
+
 
 class BBoxPerturbation(nn.Module):
     """
@@ -460,6 +462,28 @@ class PromptPerturbation(nn.Module):
             p_warp=p_warp,
             min_area_ratio=min_area_ratio,
         )
+
+    @classmethod
+    def from_config(
+        cls,
+        mppg_config: MPPGConfig,
+        **overrides,
+    ) -> "PromptPerturbation":
+        """Build the perturbation wrapper from MPPGConfig with optional overrides."""
+        params = {
+            "sigma_b": mppg_config.sigma_b,
+            "gamma_range": mppg_config.gamma_range,
+            "rotation_range": mppg_config.rotation_range,
+            "sigma_p": mppg_config.sigma_p,
+            "q_flip": mppg_config.q_flip,
+            "dilate_radius": mppg_config.dilate_radius,
+            "erode_radius": mppg_config.erode_radius,
+            "warp_strength": mppg_config.warp_strength,
+            "sigma_t": mppg_config.sigma_t,
+        }
+        params.update(overrides)
+        return cls(**params)
+
     def forward(
         self,
         bbox: Optional[torch.Tensor] = None,
