@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Dict, List, Optional, Tuple
 
+import cv2
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -227,10 +229,8 @@ class UMPAModel(nn.Module):
         no_grad = not any(
             param.requires_grad for param in self.image_encoder.parameters()
         )
-        print(f"Running forward with no_grad={no_grad}")
         with torch.set_grad_enabled(not no_grad):
             backbone_out = self.image_encoder.forward_image(image)
-        print(backbone_out.keys())
         image_embeddings, high_res_features = self._select_sam_backbone_outputs(
             backbone_out
         )
@@ -252,7 +252,6 @@ class UMPAModel(nn.Module):
             text_out = self.image_encoder.forward_text(captions_p, device=image.device)
             text_emb_p = text_out["language_features"].permute(1, 0, 2)
         text_emb_p = self._project_text_embeddings(text_emb_p)
-
         point_input = (points_p, point_labels_p) if points_p is not None else None
         sparse_embs, dense_embs = self.prompt_encoder(
             points=point_input,
@@ -317,10 +316,13 @@ if __name__ == "__main__":
     print("Model config:", model_config)
     print("Building model...")
     model = UMPAModel.from_config(model_config=model_config)
+    
     print("Model built.")
-    dummy_image = torch.randn(1, 3, 1024, 1024)
+    dummy_image = cv2.imread("mask.png")  # Replace with actual image path
+    dummy_image = cv2.resize(dummy_image, (1008, 1008))
+    dummy_image = torch.from_numpy(dummy_image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
     dummy_boxes = torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float)
-    dummy_points = torch.tensor([[[150, 150]]], dtype=torch.float)
+    dummy_points = torch.tensor([[[504, 504]]], dtype=torch.float)
     dummy_point_labels = torch.tensor([[1]])
     dummy_captions = ["polyp"]
     output = model(
@@ -330,4 +332,5 @@ if __name__ == "__main__":
         point_labels=dummy_point_labels,
         captions=dummy_captions,
     )
-    print(output.keys())
+    cv2.imwrite("pred_mask.png", (output['pred_masks'][0, 0].cpu().detach().numpy() * 255).astype('uint8'))
+    print(output['pred_masks'].shape, output['iou_predictions'])
