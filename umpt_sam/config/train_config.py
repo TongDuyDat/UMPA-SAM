@@ -38,13 +38,13 @@ class PhaseConfig:
 class TrainConfig:
     """Top-level training config with the default 3-phase schedule."""
 
-    batch_size: int = 2
+    batch_size: int = 1
     K: int = 3
     lambda_reg: float = 0.01
     phase1: PhaseConfig = field(
         default_factory=lambda: PhaseConfig(
             name="warmup",
-            epochs=5,
+            epochs=1,
             lambda_con=0.0,
             freeze_image_encoder=True,
             freeze_prompt_encoder=True,
