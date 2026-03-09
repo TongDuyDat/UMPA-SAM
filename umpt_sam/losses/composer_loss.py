@@ -7,7 +7,7 @@ from typing import Dict
 class ComposerLoss(torch.nn.Module):
     def __init__(self, config_loss: Dict[str, float], *args, **kwargs):
         super(ComposerLoss, self).__init__()
-        self.dice_loss = DiceLoss()
+        self.dice_loss = DiceLoss(config_loss['dice_loss_weight'])
         self.consistency_loss = MultiPromptConsistencyLoss(config_loss['consistency_loss_weight'])
         self.config_loss = config_loss
         self.regularization_loss = RegularizationLoss(config_loss['regularization_loss_weight'])
