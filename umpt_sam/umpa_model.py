@@ -300,6 +300,15 @@ class UMPAModel(nn.Module):
         """Run K independent prompt perturbations for consistency training."""
         return [self.forward(image, **prompt_kwargs) for _ in range(K)]
 
+    def freeze_layers(self, layers: List[str]) -> torch.Tensor:
+        """Freeze specified layers by name."""
+        for layer in layers:
+            module = getattr(self, layer, None)
+            if module is not None:
+                for param in module.parameters():
+                    param.requires_grad = False
+            else:
+                raise ValueError(f"Layer {layer} not found in model.")
 
 if __name__ == "__main__":
     # Example usage
