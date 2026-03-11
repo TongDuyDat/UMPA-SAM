@@ -2,20 +2,19 @@
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+from sam3.train.loss.loss_fns import segment_miou
 
-@torch.no_grad()  # Tắt tính gradient để tiết kiệm VRAM và tăng tốc
 def evaluate(model, val_loader, device="cuda"):
     """
     Hàm đánh giá mô hình trên tập Validation.
     Trả về Dictionary chứa các metric (ví dụ: dice, miou...).
     """
     model.eval()
-    total_dice = 0.0
+    total_miou, total_dice = 0.0, 0.0
     
     pbar = tqdm(val_loader, desc="Validating")
     
     for batch in pbar:
-        # Bóc tách dữ liệu giống hệt bên Train
         images = batch['image'].to(device)
         gt_masks = batch['mask'].to(device) 
         
@@ -38,12 +37,21 @@ def evaluate(model, val_loader, device="cuda"):
         )
         pred_masks = outputs['pred_masks']
         
-        # BẮT BUỘC Phóng to mask dự đoán lên bằng GT để tính Dice
         if pred_masks.shape[-2:] != gt_masks.shape[-2:]:
             pred_masks = F.interpolate(pred_masks, size=gt_masks.shape[-2:], mode="bilinear", align_corners=False)
         
-        # Tính Dice Score
         pred_binary = (torch.sigmoid(pred_masks) > 0.5).float()
+
+        #Tinh MIOU
+        pred_3d = pred_binary.squeeze(1).bool()
+        gt_3d = (gt_masks.squeeze(1) > 0.5).bool()
+        
+        batch_miou = segment_miou(pred_3d, gt_3d)
+        total_miou += batch_miou.item()
+
+
+
+        # Tính Dice Score
         intersection = (pred_binary * gt_masks).sum(dim=(1, 2, 3))
         union = pred_binary.sum(dim=(1, 2, 3)) + gt_masks.sum(dim=(1, 2, 3))
         
@@ -53,9 +61,13 @@ def evaluate(model, val_loader, device="cuda"):
         mean_dice = dice.mean().item()
         total_dice += mean_dice
         
-        pbar.set_postfix({"Dice": f"{mean_dice:.4f}"})
+        pbar.set_postfix({
+            "Dice": f"{mean_dice:.4f}",
+            "mIoU": f"{batch_miou.item():.4f}"
+        })
 
-    # Có thể mở rộng thêm tính mIoU ở đây và nhét vào dict trả về
+
     return {
-        "dice": total_dice / len(val_loader)
+        "dice": total_dice / len(val_loader),
+        "miou": total_miou / len(val_loader)
     }
