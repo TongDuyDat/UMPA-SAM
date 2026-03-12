@@ -10,7 +10,7 @@ from umpt_sam.losses.composer_loss import ComposerLoss
 from umpt_sam.training.phase_scheduler import PhaseScheduler
 from umpt_sam.training.trainer import UMPATrainer
 from umpt_sam.training.evaluate import evaluate
-from umpt_sam.config.train_config import *
+
 from umpt_sam.data.polyp_dataset import PolypDataset 
 from umpt_sam.data.polyp_dataset import PolypDataset, DatasetConfig, collate_fn
     
