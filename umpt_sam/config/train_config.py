@@ -38,13 +38,13 @@ class PhaseConfig:
 class TrainConfig:
     """Top-level training config with the default 3-phase schedule."""
 
-    batch_size: int = 1
+    batch_size: int = 32
     K: int = 3
     lambda_reg: float = 0.01
     phase1: PhaseConfig = field(
         default_factory=lambda: PhaseConfig(
             name="warmup",
-            epochs=1,
+            epochs=5,
             lambda_con=0.0,
             freeze_image_encoder=True,
             freeze_prompt_encoder=True,
@@ -74,6 +74,13 @@ class TrainConfig:
             lr=1e-5,
         )
     )
+    
+    
+    loss_weights: dict = field(default_factory=lambda: {
+        "consistency_loss_weight": 1.0, 
+        "regularization_loss_weight": 1.0, 
+        "dice_loss_weight": 1.0
+    })
 
     def __post_init__(self) -> None:
         if self.batch_size <= 0:

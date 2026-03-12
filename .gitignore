@@ -152,5 +152,6 @@ Thumbs.db
 *.bpe
 *.vocab
 
+pyproject.toml
 # Dataset folder
 data/data_benmarks/
