@@ -72,14 +72,14 @@ class UPFEConfig:
 class UMPAModelConfig:
     """Top-level model configuration for UMPA-SAM."""
 
-    sam_checkpoint: str
+    sam_checkpoint:  str = None
+    checkpoint_path: str = None
     embed_dim: int = 256
     text_embed_dim: int = 512
     image_size: int = 1024
     freeze_image_encoder: bool = True
     mppg: MPPGConfig = field(default_factory=MPPGConfig)
     upfe: UPFEConfig = field(default_factory=UPFEConfig)
-
     def __post_init__(self) -> None:
         if self.embed_dim <= 0:
             raise ValueError("embed_dim must be > 0")
@@ -87,12 +87,15 @@ class UMPAModelConfig:
             raise ValueError("text_embed_dim must be > 0")
         if self.image_size <= 0:
             raise ValueError("image_size must be > 0")
-        if not self.sam_checkpoint:
-            raise ValueError("sam_checkpoint must be a non-empty path")
+        if not self.checkpoint_path and not self.sam_checkpoint:
+            raise ValueError(
+                "Either 'checkpoint_path' (trained UMPA weights) or "
+                "'sam_checkpoint' (SAM3 pre-trained weights) must be provided."
+            )
 
     @property
     def sam_checkpoint_path(self) -> Path:
-        return Path(self.sam_checkpoint)
+        return Path(self.sam_checkpoint) if self.sam_checkpoint else None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

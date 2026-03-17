@@ -40,13 +40,44 @@ class UMPAModel(nn.Module):
         mask_decoder: Optional[MaskDecoder] = None,
         perturbation_cfg: Optional[dict] = None,
         sam_build_kwargs: Optional[dict] = None,
+        checkpoint_path: Optional[str] = None,
+        map_location: str = "cpu",
     ) -> "UMPAModel":
-        """Build UMPAModel from config and optionally load SAM3 from checkpoint."""
-        if image_encoder is None or prompt_encoder is None or mask_decoder is None:
-            image_encoder, prompt_encoder, mask_decoder = cls.load_sam_components(
-                model_config=model_config,
-                **(sam_build_kwargs or {}),
-            )
+        """Build UMPAModel from config and optionally load trained weights.
+
+        When ``checkpoint_path`` is provided the SAM3 architecture is built
+        **without** loading the original SAM3 weights (lightweight), then
+        *all* weights are loaded directly from the trained checkpoint.
+
+        When ``checkpoint_path`` is ``None`` the original SAM3 checkpoint is
+        loaded via :meth:`load_sam_components` so the model is ready for
+        training / fine-tuning.
+
+        Parameters
+        ----------
+        checkpoint_path : str | None
+            Path to trained UMPA ``.pth`` checkpoint.  If given, SAM3
+            weights are **not** loaded separately.
+        map_location : str
+            Device for weight loading, forwarded to :func:`torch.load`.
+        """
+        # Resolve checkpoint_path: explicit arg > model_config field
+        if checkpoint_path is None:
+            checkpoint_path = getattr(model_config, "checkpoint_path", None)
+
+        if checkpoint_path is not None:
+            # ---- Lightweight path: architecture only, no SAM3 weights ----
+            if image_encoder is None or prompt_encoder is None or mask_decoder is None:
+                image_encoder, prompt_encoder, mask_decoder = (
+                    cls._build_sam_architecture(**(sam_build_kwargs or {}))
+                )
+        else:
+            # ---- Training path: load SAM3 pre-trained weights ------------
+            if image_encoder is None or prompt_encoder is None or mask_decoder is None:
+                image_encoder, prompt_encoder, mask_decoder = cls.load_sam_components(
+                    model_config=model_config,
+                    **(sam_build_kwargs or {}),
+                )
 
         model = cls(
             image_encoder=image_encoder,
@@ -64,7 +95,51 @@ class UMPAModel(nn.Module):
             **(perturbation_cfg or {}),
         )
         model.model_config = model_config
+
+        if checkpoint_path is not None:
+            model.load_weights(
+                checkpoint_path,
+                skip_image_encoder=False,   # load ALL weights from checkpoint
+                map_location=map_location,
+            )
+
         return model
+
+    @classmethod
+    def _build_sam_architecture(
+        cls,
+        **kwargs,
+    ) -> Tuple[SAM3VLBackbone, PromptEncoder, MaskDecoder]:
+        """Build SAM3 module architecture **without** loading any weights.
+
+        This is used when we already have a trained checkpoint that
+        contains all weights — avoids the expensive SAM3 checkpoint load.
+        """
+        from sam3.model_builder import (
+            _create_vision_backbone,
+            _create_text_encoder,
+            _create_vl_backbone,
+            build_tracker,
+        )
+        import os
+
+        bpe_path = kwargs.get("bpe_path")
+        if bpe_path is None:
+            import sam3
+            bpe_path = os.path.join(
+                os.path.dirname(sam3.__file__),
+                "..", "assets", "bpe_simple_vocab_16e6.txt.gz",
+            )
+
+        vision_encoder = _create_vision_backbone(enable_inst_interactivity=True)
+        text_encoder = _create_text_encoder(bpe_path)
+        image_encoder = _create_vl_backbone(vision_encoder, text_encoder)
+
+        tracker = build_tracker(apply_temporal_disambiguation=False)
+        prompt_encoder = tracker.sam_prompt_encoder
+        mask_decoder = tracker.sam_mask_decoder
+
+        return image_encoder, prompt_encoder, mask_decoder
 
     @classmethod
     def load_sam_components(
@@ -100,7 +175,7 @@ class UMPAModel(nn.Module):
             tracker_model.sam_prompt_encoder,
             tracker_model.sam_mask_decoder,
         )
-
+    
     def __init__(
         self,
         image_encoder: SAM3VLBackbone,
@@ -309,6 +384,164 @@ class UMPAModel(nn.Module):
                     param.requires_grad = False
             else:
                 raise ValueError(f"Layer {layer} not found in model.")
+
+    # ------------------------------------------------------------------
+    # Weight loading
+    # ------------------------------------------------------------------
+
+    def load_weights(
+        self,
+        checkpoint_path: str,
+        *,
+        strict: bool = False,
+        skip_image_encoder: bool = True,
+        map_location: str = "cpu",
+    ) -> Dict:
+        """Load trained UMPA weights from a checkpoint file.
+
+        The expected checkpoint format (as produced by the training loop)::
+
+            {
+                "epoch": int,
+                "model_state_dict": OrderedDict,
+                "optimizer_state_dict": dict,
+                "val_dice": float,
+                "val_miou": float,
+            }
+
+        Parameters
+        ----------
+        checkpoint_path : str
+            Path to the ``.pt`` / ``.pth`` checkpoint produced by training.
+        strict : bool, default False
+            If ``True``, require an exact match between checkpoint keys and
+            model keys (after optional filtering).  ``False`` allows partial
+            loading — useful when the checkpoint contains all layers but
+            ``skip_image_encoder`` drops the backbone keys.
+        skip_image_encoder : bool, default True
+            If ``True``, keys prefixed with ``image_encoder.`` are removed
+            from the checkpoint *before* loading.  This prevents
+            overwriting the frozen SAM backbone already initialised by
+            :meth:`load_sam_components`.
+        map_location : str, default "cpu"
+            Device string forwarded to :func:`torch.load`.
+
+        Returns
+        -------
+        dict
+            ``{"matched", "missing", "unexpected"}`` key lists **plus**
+            training metadata: ``"epoch"``, ``"val_dice"``, ``"val_miou"``.
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        # --- 1. Load checkpoint ------------------------------------------
+        raw = torch.load(
+            checkpoint_path, map_location=map_location, weights_only=False,
+        )
+
+        # --- 2. Extract training metadata --------------------------------
+        metadata: Dict = {}
+        if isinstance(raw, dict):
+            for meta_key in ("epoch", "val_dice", "val_miou"):
+                if meta_key in raw:
+                    metadata[meta_key] = raw[meta_key]
+
+        # --- 3. Extract model state dict ---------------------------------
+        state_dict = raw
+        if isinstance(raw, dict):
+            for key in ("model_state_dict", "state_dict", "model"):
+                if key in raw and isinstance(raw[key], dict):
+                    state_dict = raw[key]
+                    break
+
+        # --- 4. Strip DDP "module." prefix if present --------------------
+        cleaned: Dict[str, torch.Tensor] = {}
+        for k, v in state_dict.items():
+            cleaned[k.removeprefix("module.")] = v
+
+        # --- 5. Optionally drop frozen backbone keys ---------------------
+        if skip_image_encoder:
+            before = len(cleaned)
+            cleaned = {
+                k: v
+                for k, v in cleaned.items()
+                if not k.startswith("image_encoder.")
+            }
+            skipped = before - len(cleaned)
+            if skipped:
+                logger.info("Skipped %d image_encoder keys.", skipped)
+
+        # --- 6. Load into model ------------------------------------------
+        result = self.load_state_dict(cleaned, strict=strict)
+
+        matched = [
+            k for k in cleaned if k not in (result.unexpected_keys or [])
+        ]
+        info: Dict = {
+            "matched": matched,
+            "missing": list(result.missing_keys or []),
+            "unexpected": list(result.unexpected_keys or []),
+            **metadata,
+        }
+
+        logger.info(
+            "Checkpoint loaded  |  epoch=%s  val_dice=%.4f  val_miou=%.4f",
+            metadata.get("epoch", "?"),
+            metadata.get("val_dice", 0.0),
+            metadata.get("val_miou", 0.0),
+        )
+        logger.info(
+            "Keys  |  matched=%d  missing=%d  unexpected=%d",
+            len(matched),
+            len(info["missing"]),
+            len(info["unexpected"]),
+        )
+        if info["missing"]:
+            logger.warning("Missing keys: %s", info["missing"])
+        if info["unexpected"]:
+            logger.warning("Unexpected keys: %s", info["unexpected"])
+
+        return info
+
+    @classmethod
+    def from_pretrained(
+        cls,
+        model_config: UMPAModelConfig,
+        checkpoint_path: str,
+        *,
+        strict: bool = False,
+        skip_image_encoder: bool = True,
+        map_location: str = "cpu",
+        sam_build_kwargs: Optional[dict] = None,
+    ) -> "UMPAModel":
+        """Build UMPAModel from config and load trained weights in one call.
+
+        Parameters
+        ----------
+        model_config : UMPAModelConfig
+            Full model configuration (SAM checkpoint, embed dims, etc.).
+        checkpoint_path : str
+            Path to the trained UMPA checkpoint.
+        strict, skip_image_encoder, map_location
+            Forwarded to :meth:`load_weights`.
+        sam_build_kwargs : dict | None
+            Extra kwargs forwarded to :meth:`load_sam_components`.
+
+        Returns
+        -------
+        UMPAModel
+            Fully constructed model with trained weights loaded.
+        """
+        model = cls.from_config(model_config, sam_build_kwargs=sam_build_kwargs)
+        model.load_weights(
+            checkpoint_path,
+            strict=strict,
+            skip_image_encoder=skip_image_encoder,
+            map_location=map_location,
+        )
+        return model
 
 if __name__ == "__main__":
     # Example usage
