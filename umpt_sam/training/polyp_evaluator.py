@@ -275,7 +275,6 @@ def benchmark_from_checkpoint(
 
 if __name__ == "__main__":
     import argparse
-    from .evaluate import benchmark_test
 
     parser = argparse.ArgumentParser(
         description="Run UMPA-SAM Polyp benchmark with class-based evaluator."
