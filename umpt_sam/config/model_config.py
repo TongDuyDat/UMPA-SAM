@@ -76,7 +76,7 @@ class UMPAModelConfig:
     checkpoint_path: str = None
     embed_dim: int = 256
     text_embed_dim: int = 512
-    image_size: int = 1024
+    image_size: int = 1008
     freeze_image_encoder: bool = True
     mppg: MPPGConfig = field(default_factory=MPPGConfig)
     upfe: UPFEConfig = field(default_factory=UPFEConfig)

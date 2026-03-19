@@ -21,7 +21,7 @@ import albumentations as A
 
 @dataclass
 class TransformConfig:
-    image_size: int = 1024                          # SAM standard
+    image_size: int = 1008                          # SAM standard
 
     # Geometric
     hflip_p: float = 0.5
