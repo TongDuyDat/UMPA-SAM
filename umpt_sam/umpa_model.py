@@ -23,9 +23,10 @@ except ImportError:  # pragma: no cover
     from sam3.sam.mask_decoder import MaskDecoder
     from sam3.sam.prompt_encoder import PromptEncoder
 
-from .config.model_config import UMPAModelConfig
+from .config.model_config import UMPAModelConfig, GRCMIConfig
 from .modules.modules import PromptPerturbation
 from .modules.upf_enconder import UnifiedPromptFusionEncoder
+from .modules.grcmi import GatedResidualInjector
 
 
 class UMPAModel(nn.Module):
@@ -90,6 +91,7 @@ class UMPAModel(nn.Module):
             perturbation_cfg=None,
         )
         model.upfe_encoder = UnifiedPromptFusionEncoder.from_config(model_config.upfe)
+        model.grcmi = GatedResidualInjector.from_config(model_config.grcmi)
         model.perturbation = PromptPerturbation.from_config(
             model_config.mppg,
             **(perturbation_cfg or {}),
@@ -210,6 +212,7 @@ class UMPAModel(nn.Module):
             embed_dim=embed_dim,
             scoting_network_hidden_dim=upfe_hidden_dim,
         )
+        self.grcmi = GatedResidualInjector(embed_dim=embed_dim)
         self.perturbation = PromptPerturbation(**(perturbation_cfg or {}))
 
     @staticmethod
@@ -357,15 +360,44 @@ class UMPAModel(nn.Module):
             e_fused = upfe_out
             prompt_weights = None
 
-        # Use unified fused prompt embedding as the sparse prompt input token
-        # If e_fused has shape [B,C], convert to [B,1,C]
-        sparse_prompt_embeddings = torch.cat([sparse_embs, e_fused.unsqueeze(1)], dim=1)
-        # sparse_prompt_embeddings = e_fused.unsqueeze(1)
+        # ---- GRCMI: inject e_fused back into each modality embedding ----
+        # E_m' = E_m + g_m ⊙ φ_m(e_fused)
+        grcmi_input: Dict[str, Optional[torch.Tensor]] = {
+            "point": point_embeddings,   # [B, N_p, C] or None
+            "box":   box_embeddings,     # [B, 2, C]   or None
+            "mask":  dense_embs,         # [B, C, H, W]
+            "text":  text_emb_p,         # [B, N_t, C] or None
+        }
+        injected = self.grcmi(grcmi_input, e_fused)  # e_fused: [B, C]
+
+        # Reconstruct sparse_prompt_embeddings from injected per-modality tokens
+        sparse_parts: List[torch.Tensor] = []
+        if injected["point"] is not None:
+            sparse_parts.append(injected["point"])  # [B, N_p, C]
+        if injected["box"] is not None:
+            sparse_parts.append(injected["box"])    # [B, 2, C]
+        if injected["text"] is not None:
+            sparse_parts.append(injected["text"])   # [B, N_t, C]
+
+        if sparse_parts:
+            sparse_prompt_embeddings = torch.cat(sparse_parts, dim=1)  # [B, N_total, C]
+        else:
+            # Fallback: no sparse prompts, use e_fused as single token
+            sparse_prompt_embeddings = e_fused.unsqueeze(1)  # [B, 1, C]
+
+        # Append e_fused itself as an additional conditioning token
+        sparse_prompt_embeddings = torch.cat(
+            [sparse_prompt_embeddings, e_fused.unsqueeze(1)], dim=1
+        )
+
+        # Dense prompt embeddings: use GRCMI-injected mask
+        dense_prompt_embeddings = injected["mask"]  # [B, C, H, W]
+
         decoder_out = self.sam_mask_decoder(
             image_embeddings=image_embeddings,
             image_pe=image_pe,
             sparse_prompt_embeddings=sparse_prompt_embeddings,
-            dense_prompt_embeddings=dense_embs,
+            dense_prompt_embeddings=dense_prompt_embeddings,
             multimask_output=multimask_output,
             repeat_image=False,
             high_res_features=high_res_features,
