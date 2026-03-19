@@ -1,7 +1,9 @@
 """Training configuration dataclasses for UMPA-SAM.
 
-This module defines the three-phase optimization schedule described in PLAN.md.
-It is intentionally standalone and not connected to the current trainer code.
+Implements a three-phase Differential Learning Rate schedule where each
+module receives a phase-specific LR multiplier instead of binary freeze/unfreeze.
+
+LR_effective(module, phase) = phase.lr * phase.lr_multipliers[group_name]
 """
 
 from __future__ import annotations
@@ -10,16 +12,41 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 
 
+# Default LR multipliers per phase.
+# Keys must match the param group names used in the optimizer.
+#
+# ┌──────────────┬─────────┬─────────┬─────────┐
+# │ Module       │ Phase 1 │ Phase 2 │ Phase 3 │
+# ├──────────────┼─────────┼─────────┼─────────┤
+# │ upfe         │ 1.0     │ 1.0     │ 1.0     │
+# │ proj         │ 1.0     │ 1.0     │ 1.0     │
+# │ pe           │ 0.01    │ 1.0     │ 0.5     │
+# │ dec          │ 0.01    │ 0.1     │ 1.0     │
+# └──────────────┴─────────┴─────────┴─────────┘
+
+_PHASE1_LR_MULTIPLIERS = {"upfe": 1.0, "proj": 1.0, "pe": 0.01, "dec": 0.01}
+_PHASE2_LR_MULTIPLIERS = {"upfe": 1.0, "proj": 1.0, "pe": 1.0,  "dec": 0.1}
+_PHASE3_LR_MULTIPLIERS = {"upfe": 1.0, "proj": 1.0, "pe": 0.5,  "dec": 1.0}
+
+
 @dataclass(slots=True)
 class PhaseConfig:
-    """Configuration for a single training phase."""
+    """Configuration for a single training phase.
+
+    Attributes
+    ----------
+    lr : float
+        Base learning rate for this phase.
+    lr_multipliers : dict[str, float]
+        Per-group LR scale factors.  Effective LR for group ``g`` is
+        ``lr * lr_multipliers[g]``.  A multiplier of 0.0 is equivalent
+        to freezing the module.
+    """
 
     epochs: int
     lambda_con: float
-    freeze_image_encoder: bool
-    freeze_prompt_encoder: bool
-    freeze_mask_decoder: bool
     lr: float
+    lr_multipliers: dict[str, float] = field(default_factory=lambda: {})
     name: str = ""
 
     def __post_init__(self) -> None:
@@ -29,6 +56,13 @@ class PhaseConfig:
             raise ValueError("lambda_con must be >= 0")
         if self.lr <= 0:
             raise ValueError("lr must be > 0")
+        for k, v in self.lr_multipliers.items():
+            if v < 0:
+                raise ValueError(f"lr_multiplier for '{k}' must be >= 0, got {v}")
+
+    def effective_lr(self, group_name: str) -> float:
+        """Return the effective LR for a given param group."""
+        return self.lr * self.lr_multipliers.get(group_name, 1.0)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -46,10 +80,8 @@ class TrainConfig:
             name="warmup",
             epochs=5,
             lambda_con=0.0,
-            freeze_image_encoder=True,
-            freeze_prompt_encoder=True,
-            freeze_mask_decoder=True,
             lr=1e-4,
+            lr_multipliers=dict(_PHASE1_LR_MULTIPLIERS),
         )
     )
     phase2: PhaseConfig = field(
@@ -57,10 +89,8 @@ class TrainConfig:
             name="adaptation",
             epochs=5,
             lambda_con=0.0,
-            freeze_image_encoder=True,
-            freeze_prompt_encoder=False,
-            freeze_mask_decoder=True,
             lr=5e-5,
+            lr_multipliers=dict(_PHASE2_LR_MULTIPLIERS),
         )
     )
     phase3: PhaseConfig = field(
@@ -68,18 +98,15 @@ class TrainConfig:
             name="consistency",
             epochs=10,
             lambda_con=0.5,
-            freeze_image_encoder=True,
-            freeze_prompt_encoder=False,
-            freeze_mask_decoder=False,
             lr=1e-5,
+            lr_multipliers=dict(_PHASE3_LR_MULTIPLIERS),
         )
     )
-    
-    
+
     loss_weights: dict = field(default_factory=lambda: {
-        "consistency_loss_weight": 1.0, 
-        "regularization_loss_weight": 1.0, 
-        "dice_loss_weight": 1.0
+        "consistency_loss_weight": 1.0,
+        "regularization_loss_weight": 1.0,
+        "dice_loss_weight": 1.0,
     })
 
     def __post_init__(self) -> None:
@@ -108,7 +135,8 @@ class TrainConfig:
                 return phase
             cursor += phase.epochs
         raise IndexError(
-            f"epoch={epoch} is outside configured schedule with total_epochs={self.total_epochs}"
+            f"epoch={epoch} is outside configured schedule with "
+            f"total_epochs={self.total_epochs}"
         )
 
     def to_dict(self) -> dict[str, Any]:
