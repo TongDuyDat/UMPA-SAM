@@ -77,7 +77,11 @@ class UMPATrainer:
                     p_lr = getattr(p, 'lr', 'N/A')
                     p_lam = getattr(p, 'lambda_con', 'N/A')
                     p_epochs = getattr(p, 'epochs', 'N/A')
+                    p_mults = getattr(p, 'lr_multipliers', {})
+                    mult_str = " | ".join(f"{k}={p_lr*v:.1e}" for k, v in p_mults.items()) if p_mults else ""
                     phases_info += f"    - {p_name} ({p_epochs} epochs) | LR: {p_lr} | lambda_con: {p_lam}\n"
+                    if mult_str:
+                        phases_info += f"      Effective LRs: {mult_str}\n"
         else:
             phases_info = "    - (Không tìm thấy thông tin chi tiết các Phase)\n"
         log_content = f"""

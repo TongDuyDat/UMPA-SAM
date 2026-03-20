@@ -72,7 +72,31 @@ def main():
     print("Đang thiết lập Loss và Optimizer...")
     composer_loss = ComposerLoss(config_loss=config.loss_weights).to(device)
 
-    optimizer = optim.AdamW(model.parameters(), lr=config.phase1.lr, weight_decay=1e-4)
+    # Named param groups for Differential Learning Rate.
+    # PhaseScheduler will set each group's LR = base_lr * multiplier.
+    # Image encoder is always frozen and excluded from the optimizer.
+    param_groups = [
+        {
+            "name": "upfe",
+            "params": list(model.upfe_encoder.parameters()),
+        },
+        {
+            "name": "proj",
+            "params": list(model.text_projection.parameters()),
+        },
+        {
+            "name": "pe",
+            "params": list(model.prompt_encoder.parameters()),
+        },
+        {
+            "name": "dec",
+            "params": list(model.sam_mask_decoder.parameters()),
+        },
+    ]
+    # Filter out empty groups (e.g. text_projection = nn.Identity has no params)
+    param_groups = [pg for pg in param_groups if len(pg["params"]) > 0]
+
+    optimizer = optim.AdamW(param_groups, lr=config.phase1.lr, weight_decay=1e-4)
     
     scheduler = PhaseScheduler(train_config=config)
 

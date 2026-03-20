@@ -69,6 +69,27 @@ class UPFEConfig:
 
 
 @dataclass(slots=True)
+class GRCMIConfig:
+    """Hyperparameters for Gated Residual Cross-Modal Injection.
+
+    Gate bias is initialised to ``gate_init_bias`` so that
+    σ(gate_init_bias) ≈ 0 at epoch 0, preserving SAM3 pre-trained
+    weight distribution.
+    """
+
+    embed_dim: int = 256
+    gate_init_bias: float = -3.0  # σ(-3) ≈ 0.047
+    modalities: tuple[str, ...] = ("point", "box", "mask", "text")
+
+    def __post_init__(self) -> None:
+        if self.embed_dim <= 0:
+            raise ValueError("embed_dim must be > 0")
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
 class UMPAModelConfig:
     """Top-level model configuration for UMPA-SAM."""
 
@@ -80,6 +101,7 @@ class UMPAModelConfig:
     freeze_image_encoder: bool = True
     mppg: MPPGConfig = field(default_factory=MPPGConfig)
     upfe: UPFEConfig = field(default_factory=UPFEConfig)
+    grcmi: GRCMIConfig = field(default_factory=GRCMIConfig)
     def __post_init__(self) -> None:
         if self.embed_dim <= 0:
             raise ValueError("embed_dim must be > 0")
