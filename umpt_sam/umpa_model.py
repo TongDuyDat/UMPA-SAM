@@ -359,8 +359,8 @@ class UMPAModel(nn.Module):
 
         # Use unified fused prompt embedding as the sparse prompt input token
         # If e_fused has shape [B,C], convert to [B,1,C]
-        sparse_prompt_embeddings = torch.cat([sparse_embs, e_fused.unsqueeze(1)], dim=1)
-        # sparse_prompt_embeddings = e_fused.unsqueeze(1)
+        # sparse_prompt_embeddings = torch.cat([sparse_embs, e_fused.unsqueeze(1)], dim=1)
+        sparse_prompt_embeddings = e_fused.unsqueeze(1)
         decoder_out = self.sam_mask_decoder(
             image_embeddings=image_embeddings,
             image_pe=image_pe,
