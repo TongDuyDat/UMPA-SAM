@@ -526,49 +526,49 @@ class PromptPerturbation(nn.Module):
         return result
 
 # ============== Test ==============
-if __name__ == "__main__":
-    # Test BBox Perturbation
-    print("=" * 50)
-    print("Testing BBoxPerturbation")
-    print("=" * 50)
+# if __name__ == "__main__":
+#     # Test BBox Perturbation
+#     print("=" * 50)
+#     print("Testing BBoxPerturbation")
+#     print("=" * 50)
     
-    bbox_perturb = BBoxPerturbation(sigma_b=5.0, rotation_range=3.0)
-    bbox_perturb.train()
+#     bbox_perturb = BBoxPerturbation(sigma_b=5.0, rotation_range=3.0)
+#     bbox_perturb.train()
     
-    bbox = torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float32)
-    print(f"Original bbox: {bbox}")
+#     bbox = torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float32)
+#     print(f"Original bbox: {bbox}")
     
-    perturbed_bbox = bbox_perturb(bbox)
-    print(f"Perturbed bbox: {perturbed_bbox}")
+#     perturbed_bbox = bbox_perturb(bbox)
+#     print(f"Perturbed bbox: {perturbed_bbox}")
     
-    # Test Point Perturbation
-    print("\n" + "=" * 50)
-    print("Testing PointPerturbation")
-    print("=" * 50)
+#     # Test Point Perturbation
+#     print("\n" + "=" * 50)
+#     print("Testing PointPerturbation")
+#     print("=" * 50)
     
-    point_perturb = PointPerturbation(sigma_p=3.0, q_flip=0.1)
-    point_perturb.train()
+#     point_perturb = PointPerturbation(sigma_p=3.0, q_flip=0.1)
+#     point_perturb.train()
     
-    points = torch.tensor([[[150, 150], [120, 180]]], dtype=torch.float32)
-    labels = torch.tensor([[1, 0]], dtype=torch.long)
+#     points = torch.tensor([[[150, 150], [120, 180]]], dtype=torch.float32)
+#     labels = torch.tensor([[1, 0]], dtype=torch.long)
     
-    print(f"Original points: {points}")
-    print(f"Original labels: {labels}")
+#     print(f"Original points: {points}")
+#     print(f"Original labels: {labels}")
     
-    perturbed_points, perturbed_labels = point_perturb(points, labels)
-    print(f"Perturbed points: {perturbed_points}")
-    print(f"Perturbed labels: {perturbed_labels}")
+#     perturbed_points, perturbed_labels = point_perturb(points, labels)
+#     print(f"Perturbed points: {perturbed_points}")
+#     print(f"Perturbed labels: {perturbed_labels}")
     
-    # Test Combined
-    print("\n" + "=" * 50)
-    print("Testing PromptPerturbation (Combined)")
-    print("=" * 50)
+#     # Test Combined
+#     print("\n" + "=" * 50)
+#     print("Testing PromptPerturbation (Combined)")
+#     print("=" * 50)
     
-    prompt_perturb = PromptPerturbation()
-    prompt_perturb.train()
+#     prompt_perturb = PromptPerturbation()
+#     prompt_perturb.train()
     
-    result = prompt_perturb(
-        bbox=torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float32),
-        points=torch.tensor([[[150, 150]]], dtype=torch.float32),
-        point_labels=torch.tensor([[1]], dtype=torch.long),
-    )
+#     result = prompt_perturb(
+#         bbox=torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float32),
+#         points=torch.tensor([[[150, 150]]], dtype=torch.float32),
+#         point_labels=torch.tensor([[1]], dtype=torch.long),
+#     )
