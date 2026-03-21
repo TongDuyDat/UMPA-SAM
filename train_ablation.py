@@ -9,7 +9,7 @@ Usage
     python train_ablation.py --all
 
     # Custom save directory
-    python train_ablation.py --scenario wo_mppg --save-dir /workspace/results
+    python train_ablation.py --scenario wo_mppg --save-dir results
 
     # Dry-run (1 batch, 1 epoch) to verify setup
     python train_ablation.py --scenario full_model --dry-run
@@ -98,7 +98,7 @@ def train_scenario(
     save_base_dir: str = "checkpoints/ablation",
     device: str = "cuda",
     dry_run: bool = False,
-    sam_checkpoint: str = "sam3.pt",
+    sam_checkpoint: str = "model_trained/sam3.pt",
     dataset_name: str = "kvasir_seg",
 ):
     """Train a single ablation scenario."""
@@ -224,7 +224,7 @@ def main():
     parser.add_argument(
         "--sam-checkpoint",
         type=str,
-        default="sam3.pt",
+        default="model_trained/sam3.pt",
         help="Path to SAM3 pre-trained checkpoint",
     )
     parser.add_argument(

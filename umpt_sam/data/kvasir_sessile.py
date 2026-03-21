@@ -1,7 +1,11 @@
 # config.py
+import os
+from pathlib import Path
 import albumentations as A
 
-DATASET_SOURCE = "umpt_sam/data/kvasir-sessile/sessile-main-Kvasir-SEG/"
+# Resolve dataset path relative to this file's location (umpt_sam/data/)
+_DATA_DIR = Path(__file__).resolve().parent
+DATASET_SOURCE = str(_DATA_DIR / "kvasir-sessile" / "sessile-main-Kvasir-SEG")
 IMAGE_SIZE = (1008, 1008)
 NORMALIZE = True
 

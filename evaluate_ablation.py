@@ -63,7 +63,7 @@ def evaluate_scenario(
     checkpoint_path: str,
     device: str = "cuda",
     batch_size: int = 4,
-    sam_checkpoint: str = "sam3.pt",
+    sam_checkpoint: str = "model_trained/sam3.pt",
     save_dir: str = None,
     dataset_name: str = "kvasir_seg",
 ) -> dict:
@@ -117,7 +117,7 @@ def evaluate_all(
     base_dir: str,
     device: str = "cuda",
     batch_size: int = 4,
-    sam_checkpoint: str = "sam3.pt",
+    sam_checkpoint: str = "model_trained/sam3.pt",
     dataset_name: str = "kvasir_seg",
 ):
     """Evaluate all scenarios by finding their latest best_model.pth."""
@@ -214,7 +214,7 @@ def main():
     parser.add_argument(
         "--sam-checkpoint",
         type=str,
-        default="sam3.pt",
+        default="model_trained/sam3.pt",
     )
     parser.add_argument(
         "--dataset",

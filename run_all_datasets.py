@@ -207,7 +207,7 @@ def main():
         help="Base save directory",
     )
     parser.add_argument("--device", type=str, default="cuda")
-    parser.add_argument("--sam-checkpoint", type=str, default="sam3.pt")
+    parser.add_argument("--sam-checkpoint", type=str, default="model_trained/sam3.pt")
     parser.add_argument(
         "--dry-run", action="store_true",
         help="Quick test: 1 epoch, 4 samples per experiment",

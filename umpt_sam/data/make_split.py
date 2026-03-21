@@ -1,7 +1,10 @@
 import os
 import random
+from pathlib import Path
 
-DATASET_ROOT = "/workspace/umpt_sam/umpt_sam/data/kvasir-sessile/sessile-main-Kvasir-SEG"
+# Resolve dataset path relative to this file's location (umpt_sam/data/)
+_DATA_DIR = Path(__file__).resolve().parent
+DATASET_ROOT = str(_DATA_DIR / "kvasir-sessile" / "sessile-main-Kvasir-SEG")
 
 def create_splits(root_dir, train_ratio=0.8, val_ratio=0.1):
     image_dir = os.path.join(root_dir, "images")

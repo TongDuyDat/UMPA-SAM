@@ -60,7 +60,7 @@ def main():
     
     print("Đang khởi tạo mô hình UMPA-SAM...")
     model_config = UMPAModelConfig(
-        sam_checkpoint="sam3.pt", 
+        sam_checkpoint="model_trained/sam3.pt", 
         embed_dim=256,
         text_embed_dim=512,
         freeze_image_encoder=True,
@@ -87,7 +87,7 @@ def main():
         train_config=config,
         composer_loss=composer_loss,
         evaluate_fn=evaluate,  
-        save_dir="/workspace/umpt_sam/checkpoints",
+        save_dir="checkpoints",
         device="cuda"
         )
 

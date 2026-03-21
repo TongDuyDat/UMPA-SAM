@@ -12,8 +12,9 @@ import torch.nn.functional as F
 # (e.g., `python -m sam3.umpt_sam.umpa_model`). When running as a script, fall back
 # to absolute imports so the module still works.
 import sys
+from pathlib import Path as _Path
 
-sys.path.append("sam3")  # Ensure current directory is in path for absolute imports
+sys.path.append(str(_Path(__file__).resolve().parent.parent / "sam3"))  # Portable: resolve sam3 relative to this file
 try:
     from ..sam3.model.vl_combiner import SAM3VLBackbone
     from ..sam3.sam.mask_decoder import MaskDecoder

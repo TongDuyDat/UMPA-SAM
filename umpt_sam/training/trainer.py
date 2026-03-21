@@ -16,7 +16,7 @@ class UMPATrainer:
         train_config, 
         composer_loss, 
         evaluate_fn, 
-        save_dir="/workspace/umpt_sam/checkpoints", 
+        save_dir="checkpoints", 
         device="cuda",
     ):
         self.model = model

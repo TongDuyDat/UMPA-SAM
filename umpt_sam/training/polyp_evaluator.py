@@ -312,7 +312,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--use-amp", action="store_true")
-    parser.add_argument("--sam-checkpoint", default="sam3.pt")
+    parser.add_argument("--sam-checkpoint", default="model_trained/sam3.pt")
     args = parser.parse_args()
 
     dataset_cfg = DatasetConfig(root=args.dataset_root)

@@ -9,7 +9,7 @@ from umpt_sam.data import PolypDataset, DatasetConfig, TransformConfig, collate_
 from torch.utils.data import DataLoader
 
 cfg = DatasetConfig.kvasir_seg(
-    root="data/data_benmarks/kvasir-seg",
+    root="umpt_sam/data/kvasir-seg",
     transform_cfg=TransformConfig(image_size=1024),
 )
 dataset = PolypDataset(cfg, phase="train")
