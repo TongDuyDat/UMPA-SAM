@@ -57,10 +57,68 @@ conda activate py310
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 
 # Cài dependencies
-pip install albumentations opencv-python tqdm
+pip install albumentations opencv-python tqdm gdown
 ```
 
 ---
+
+## 2.5 Tải Datasets từ Google Drive
+
+Tất cả 5 datasets polyp benchmark nằm trong folder Drive:
+> 📁 https://drive.google.com/drive/folders/1LKF6w-dSiiTcIhBas4OmiT6oKXXp-GaH
+
+### Tải toàn bộ (khuyến nghị)
+
+```bash
+# Cài gdown nếu chưa có
+pip install gdown
+
+# Tải toàn bộ folder về umpt_sam/data/
+gdown --folder 1LKF6w-dSiiTcIhBas4OmiT6oKXXp-GaH -O umpt_sam/data/ --remaining-ok
+```
+
+### Tải từng dataset
+
+| Dataset | Google Drive Folder ID |
+|---------|----------------------|
+| CVC-ClinicDB | `1Qb4vUopsILSlEyUPFkg2tLyGSh_49poB` |
+| Kvasir-SEG | *(copy link subfolder)* |
+| CVC-ColonDB | *(copy link subfolder)* |
+| CVC-300 | *(copy link subfolder)* |
+| ETIS-LaribPolypDB | *(copy link subfolder)* |
+
+```bash
+# Ví dụ tải CVC-ClinicDB
+gdown --folder 1Qb4vUopsILSlEyUPFkg2tLyGSh_49poB -O umpt_sam/data/CVC-ClinicDB --remaining-ok
+```
+
+### Script tự động (`scripts/download_datasets.sh`)
+
+```bash
+#!/bin/bash
+set -e
+
+pip install -q gdown
+
+DATA_DIR="umpt_sam/data"
+mkdir -p "$DATA_DIR"
+
+echo "📥 Tải toàn bộ 5 polyp datasets..."
+gdown --folder 1LKF6w-dSiiTcIhBas4OmiT6oKXXp-GaH -O "$DATA_DIR" --remaining-ok
+
+echo ""
+echo "✅ Hoàn tất! Kiểm tra cấu trúc:"
+ls -la "$DATA_DIR"
+```
+
+Chạy script:
+```bash
+bash scripts/download_datasets.sh
+```
+
+> **Lưu ý**: Folder Drive phải được **Public** (Anyone with the link). Nếu cần quyền truy cập, đăng nhập Google trước: `gdown --no-cookies`.
+
+
 
 ## 3. 10 kịch bản Ablation
 
@@ -131,16 +189,25 @@ python train_ablation.py \
 ### 5.5 Train tất cả kịch bản × tất cả datasets (50 thí nghiệm)
 
 ```bash
-python run_all_datasets.py \
-    --save-dir checkpoints/ablation \
-    --device cuda
-
-# Hoặc chỉ 1 dataset, all scenarios:
-python run_all_datasets.py --dataset kvasir_seg
-
-# Hoặc 1 scenario, all datasets:
-python run_all_datasets.py --scenario full_model
+# 10 kịch bản × 5 datasets = 50 thí nghiệm
+wsl conda run -n py310 bash -c "cd /mnt/d/NCKH/NCKH2025/polyp/sam3 && python run_all_datasets.py --save-dir checkpoints/ablation --device cuda"
 ```
+
+Chạy thử trước (1 epoch, 4 samples):
+```bash
+wsl conda run -n py310 bash -c "cd /mnt/d/NCKH/NCKH2025/polyp/sam3 && python run_all_datasets.py --save-dir checkpoints/ablation --device cuda --dry-run"
+```
+
+Lọc theo dataset hoặc kịch bản:
+```bash
+# Chỉ 1 dataset, tất cả kịch bản:
+wsl conda run -n py310 bash -c "cd /mnt/d/NCKH/NCKH2025/polyp/sam3 && python run_all_datasets.py --dataset kvasir_seg --save-dir checkpoints/ablation --device cuda"
+
+# Chỉ 1 kịch bản, tất cả datasets:
+wsl conda run -n py310 bash -c "cd /mnt/d/NCKH/NCKH2025/polyp/sam3 && python run_all_datasets.py --scenario full_model --save-dir checkpoints/ablation --device cuda"
+```
+
+> **Fault-tolerant**: Nếu 1 thí nghiệm bị lỗi, script tự bỏ qua và chạy tiếp. Sau khi xong có `experiment_report.json` tổng kết.
 
 ### 5.6 Custom SAM checkpoint
 
