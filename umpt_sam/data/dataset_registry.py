@@ -30,7 +30,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 POLYP_DATASETS: Dict[str, dict] = {
     "kvasir_seg": {
-        "root": "umpt_sam/data/kvasir-seg",
+        "root": "umpt_sam/data/Kvasir_SEG",
         "text_label": "polyp in colonoscopy image",
     },
     "cvc_clinicdb": {
@@ -42,11 +42,11 @@ POLYP_DATASETS: Dict[str, dict] = {
         "text_label": "polyp in colonoscopy image",
     },
     "cvc_300": {
-        "root": "umpt_sam/data/CVC-300",
+        "root": "umpt_sam/data/CVC_300",
         "text_label": "polyp in colonoscopy image",
     },
     "etis_larib": {
-        "root": "umpt_sam/data/ETIS-LaribPolypDB",
+        "root": "umpt_sam/data/ETIS-Larib",
         "text_label": "polyp in colonoscopy image",
     },
 }
