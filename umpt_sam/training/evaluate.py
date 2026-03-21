@@ -1,4 +1,8 @@
 # umpt_sam/evaluate.py
+import time
+from typing import Optional, Dict, Any
+from dataclasses import replace
+
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
