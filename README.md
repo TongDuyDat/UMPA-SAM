@@ -1,4 +1,4 @@
-# UMPT-SAM
+# UMPA-SAM
 
 **Unified Multi-Prompt Adaptation for the Segment Anything Model**
 
@@ -6,7 +6,7 @@
 
 ## Overview
 
-UMPT-SAM is a research framework that adapts the [Segment Anything Model (SAM)](https://github.com/facebookresearch/segment-anything) for **robust polyp segmentation** in colonoscopy images. The framework is designed to handle imprecise, inconsistent, or incomplete prompt inputs that commonly occur in clinical settings.
+UMPA-SAM is a research framework that adapts the [Segment Anything Model (SAM)](https://github.com/facebookresearch/segment-anything) for **robust polyp segmentation** in colonoscopy images. The framework is designed to handle imprecise, inconsistent, or incomplete prompt inputs that commonly occur in clinical settings.
 
 The model accepts multiple prompt modalities — **bounding box, point, mask, and text** — and produces stable, high-quality segmentation masks even under prompt variability.
 
@@ -79,8 +79,8 @@ sam3/                          # Project root
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/TongDuyDat/umpt_sam.git
-cd umpt_sam
+git clone https://github.com/TongDuyDat/UMPA-SAM.git
+cd UMPA-SAM
 ```
 
 ### 2. Create conda environment
@@ -95,8 +95,8 @@ conda activate <env_name>
 **Option B — From requirements.txt:**
 
 ```bash
-conda create -n umpt_sam python=3.10 -y
-conda activate umpt_sam
+conda create -n umpa_sam python=3.10 -y
+conda activate umpa_sam
 pip install -r requirements.txt
 ```
 

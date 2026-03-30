@@ -158,3 +158,5 @@ data/data_benmarks/
 
 model_trained/
 tests/
+umpt_sam/data/*/*
+examples/*/*
