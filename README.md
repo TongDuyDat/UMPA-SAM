@@ -24,7 +24,6 @@ The model accepts multiple prompt modalities — **bounding box, point, mask, an
 - **Robust to prompt noise**: handles clinical annotation imperfections  
 - **Built on SAM3**: leverages Segment Anything Model v3 as backbone  
 - **Three-phase training strategy**: phased optimization schedule for stable convergence  
-- **Ablation study framework**: 10 pre-defined scenarios for systematic component analysis  
 - **Multi-dataset support**: evaluated on 5 standard polyp benchmarks  
 
 ---
@@ -33,33 +32,24 @@ The model accepts multiple prompt modalities — **bounding box, point, mask, an
 
 ```
 sam3/                          # Project root
-├── main.py                    # Quick-start training script (single dataset)
-├── train_ablation.py          # Ablation study training CLI
-├── evaluate_ablation.py       # Ablation study evaluation CLI
-├── run_all_datasets.py        # One-click runner: all datasets × all scenarios
+├── main.py                    # Training script
 ├── requirements.txt           # Python dependencies
 ├── py310_export.yml           # Conda environment export (Python 3.10)
 │
 ├── umpt_sam/                  # Core framework
 │   ├── config/                # Configuration dataclasses
 │   │   ├── model_config.py    # Model hyperparameters
-│   │   ├── train_config.py    # 3-phase training schedule
-│   │   └── experiment_config.py  # Ablation scenario definitions
+│   │   └── train_config.py    # 3-phase training schedule
 │   ├── data/                  # Dataset loading & transforms
 │   │   ├── dataset_registry.py   # 5-dataset registry
 │   │   ├── polyp_dataset.py      # PolypDataset class
-│   │   ├── polyp_transforms.py   # Albumentations pipelines
-│   │   └── make_split.py         # Split generation utility
+│   │   └── polyp_transforms.py   # Albumentations pipelines
 │   ├── losses/                # Loss functions
 │   ├── modules/               # Model components (withheld)
 │   ├── training/              # Trainer, evaluator, schedulers
 │   └── umpa_model.py          # Model entry point (withheld)
 │
 ├── sam3/                      # SAM3 backbone (third-party)
-├── scripts/                   # Helper scripts
-│   ├── download_datasets.sh   # Dataset download from Google Drive
-│   └── eval/                  # Evaluation utilities
-├── data/                      # Additional data processing
 ├── model_trained/             # Pre-trained checkpoints directory
 ├── tests/                     # Unit tests
 └── docs/                      # Documentation & diagrams
@@ -184,116 +174,86 @@ This trains on Kvasir-SEG with default hyperparameters using the 3-phase trainin
 | Adaptation | 5      | 5e-5          | 0.0   | Image Encoder, Mask Decoder            |
 | Consistency| 10     | 1e-5          | 0.5   | Image Encoder                          |
 
-### Ablation Study Training
+### Dataset Configuration
 
-Train a **single ablation scenario**:
+In `main.py`, the dataset is configured through two components:
 
-```bash
-python train_ablation.py --scenario full_model --dataset kvasir_seg
+**1. Data source config** (e.g. `umpt_sam/data/kvasir_sessile.py`):
+
+```python
+DATASET_SOURCE = "<path_to_dataset_root>"    # absolute or relative path
+IMAGE_SIZE = (1008, 1008)                    # input resolution
+TRANSFORM_PIPELINE = { "train": ..., "val": ... }  # albumentations pipelines
 ```
 
-Train **all 10 scenarios** for a dataset:
+**2. DatasetConfig** in `main.py`:
 
-```bash
-python train_ablation.py --all --dataset kvasir_seg
+```python
+from umpt_sam.data.polyp_dataset import DatasetConfig
+from umpt_sam.data.<your_config> import DATASET_SOURCE, TRANSFORM_PIPELINE
+
+dataset_config = DatasetConfig(root=DATASET_SOURCE)
 ```
 
-**Dry-run** (1 epoch, 4 samples — verify setup):
+#### Switching to a different dataset
 
-```bash
-python train_ablation.py --scenario full_model --dry-run
+1. Create a new config file under `umpt_sam/data/` (see `kvasir_sessile.py` as reference)
+2. Set `DATASET_SOURCE` to your dataset root directory
+3. Update the import in `main.py` to point to your new config
+
+#### Expected dataset directory layout
+
+```
+umpt_sam/data/<DatasetName>/
+├── images/          # .jpg / .png images
+├── masks/           # binary masks (same filenames as images)
+└── split/           # auto-generated on first run
+    ├── train.txt    # file stems (80%)
+    ├── val.txt      # (10%)
+    └── test.txt     # (10%)
 ```
 
-List all available scenarios:
-
-```bash
-python train_ablation.py --list
-```
-
-#### Available Ablation Scenarios
-
-| Group | Scenario | Active Prompts | Active Components |
-|-------|----------|----------------|-------------------|
-| **A — Prompt** | `only_box` | box | MPPG, UPFE, MPCL |
-| | `only_point` | point | MPPG, UPFE, MPCL |
-| | `only_mask` | mask | MPPG, UPFE, MPCL |
-| | `only_text` | text | MPPG, UPFE, MPCL |
-| | `box_point` | box, point | MPPG, UPFE, MPCL |
-| | `box_point_mask` | box, point, mask | MPPG, UPFE, MPCL |
-| **B — Component** | `wo_mppg` | all | UPFE, MPCL |
-| | `wo_upfe` | all | MPPG, MPCL |
-| | `wo_mpcl` | all | MPPG, UPFE |
-| **C — Baseline** | `full_model` | all | MPPG, UPFE, MPCL |
-
-### One-Click: All Datasets × All Scenarios
-
-Train **all 50 experiments** (5 datasets × 10 scenarios):
-
-```bash
-python run_all_datasets.py
-```
-
-Selective runs:
-
-```bash
-# Single dataset, all scenarios
-python run_all_datasets.py --dataset kvasir_seg
-
-# Single scenario, all datasets
-python run_all_datasets.py --scenario full_model
-
-# Custom device and checkpoint
-python run_all_datasets.py --device cuda:1 --sam-checkpoint /path/to/sam3.pt
-
-# Dry-run to verify setup
-python run_all_datasets.py --dry-run
-```
-
-### Training CLI Options
-
-| Argument            | Default                   | Description                       |
-|---------------------|---------------------------|-----------------------------------|
-| `--scenario`        | —                         | Ablation scenario name            |
-| `--all`             | —                         | Train all scenarios               |
-| `--dataset`         | `kvasir_seg`              | Dataset name                      |
-| `--save-dir`        | `checkpoints/ablation`    | Output directory                  |
-| `--device`          | `cuda`                    | Compute device                    |
-| `--sam-checkpoint`  | `model_trained/sam3.pt`   | SAM3 weights path                 |
-| `--dry-run`         | `false`                   | Quick test (1 epoch, 4 samples)   |
+> Split files are **auto-generated** on the first training run with an 80/10/10 ratio (seed=42).
 
 ### Training Outputs
 
 ```
-checkpoints/ablation/<dataset>/<scenario>/run_YYYYMMDD_HHMMSS/
+checkpoints/run_YYYYMMDD_HHMMSS/
 ├── best_model.pth          # Best validation checkpoint
 ├── latest_model.pth        # Latest checkpoint
-├── training_log.txt        # Detailed training log
-└── experiment_config.json  # Scenario configuration snapshot
+└── training_log.txt        # Detailed training log
 ```
 
 ---
 
 ## Evaluation
 
-### Evaluate a single scenario
+### Evaluate a trained checkpoint
 
-```bash
-python evaluate_ablation.py \
-    --scenario full_model \
-    --checkpoint checkpoints/ablation/kvasir_seg/full_model/run_.../best_model.pth \
-    --dataset kvasir_seg
-```
+```python
+from umpt_sam.training.evaluate import benchmark_test
+from umpt_sam.config.model_config import UMPAModelConfig, UPFEConfig, MPPGConfig
+from umpt_sam.data.polyp_dataset import DatasetConfig
 
-### Evaluate all trained scenarios
+model_config = UMPAModelConfig(
+    sam_checkpoint="model_trained/sam3.pt",
+    embed_dim=256, text_embed_dim=512,
+    freeze_image_encoder=True,
+    upfe=UPFEConfig(scoring_hidden_dim=256),
+    mppg=MPPGConfig(),
+)
 
-```bash
-python evaluate_ablation.py --all --base-dir checkpoints/ablation --dataset kvasir_seg
-```
+dataset_config = DatasetConfig(root="umpt_sam/data/Kvasir_SEG")
 
-### Generate summary table only
+metrics = benchmark_test(
+    checkpoint_path="checkpoints/<run_dir>/best_model.pth",
+    dataset_cfg=dataset_config,
+    model_config=model_config,
+    device="cuda",
+    batch_size=4,
+)
 
-```bash
-python evaluate_ablation.py --summary --base-dir checkpoints/ablation --dataset kvasir_seg
+print(f"Dice: {metrics['dice']:.4f} | mIoU: {metrics['miou']:.4f}")
 ```
 
 ### Evaluation Metrics
@@ -302,46 +262,10 @@ python evaluate_ablation.py --summary --base-dir checkpoints/ablation --dataset 
 |--------------|---------------------------------------------|
 | **Dice**     | Dice similarity coefficient                 |
 | **mIoU**     | Mean Intersection over Union                |
-| **Precision**| Pixel-level precision (full_metrics mode)    |
-| **Recall**   | Pixel-level recall (full_metrics mode)       |
+| **Precision**| Pixel-level precision                       |
+| **Recall**   | Pixel-level recall                          |
 | **F2-Score** | F2 measure emphasizing recall               |
 | **Mask AP**  | AP at IoU thresholds 0.50:0.05:0.95         |
-
-### Evaluation CLI Options
-
-| Argument            | Default                   | Description                       |
-|---------------------|---------------------------|-----------------------------------|
-| `--scenario`        | —                         | Single scenario to evaluate       |
-| `--all`             | —                         | Evaluate all scenarios            |
-| `--summary`         | —                         | Generate summary table only       |
-| `--checkpoint`      | —                         | Checkpoint path (with --scenario) |
-| `--base-dir`        | `checkpoints/ablation`    | Base results directory            |
-| `--dataset`         | `kvasir_seg`              | Dataset name                      |
-| `--device`          | `cuda`                    | Compute device                    |
-| `--batch-size`      | `4`                       | Evaluation batch size             |
-| `--sam-checkpoint`  | `model_trained/sam3.pt`   | SAM3 weights path                 |
-
----
-
-## Experiment Report
-
-When using `run_all_datasets.py`, a JSON report is automatically generated:
-
-```
-checkpoints/ablation/experiment_report.json
-```
-
-The report includes: run status (OK/FAILED/SKIPPED), elapsed time, error messages, and tracebacks for failed experiments. The runner is **fault-tolerant** — if a scenario crashes, the error is logged and the next experiment continues.
-
----
-
-## Testing
-
-Run unit tests with:
-
-```bash
-pytest tests/ -v
-```
 
 ---
 
