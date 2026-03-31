@@ -1,6 +1,6 @@
 # UMPA-SAM
 
-**Unified Multi-Prompt Adaptation for the Segment Anything Model**
+**UMPA-SAM: Unified Multi-Prompt Adaptation for Robust Polyp Segmentation**
 
 ---
 
@@ -11,6 +11,10 @@ UMPA-SAM is a research framework that adapts the [Segment Anything Model (SAM)](
 The model accepts multiple prompt modalities — **bounding box, point, mask, and text** — and produces stable, high-quality segmentation masks even under prompt variability.
 
 > **Note:** Model architecture details are currently withheld and will be released upon publication.
+
+## Model Architecture
+
+![UMPA-SAM Architecture](assets/model_architecture.png)
 
 ---
 
