@@ -544,36 +544,36 @@ class UMPAModel(nn.Module):
         )
         return model
 
-if __name__ == "__main__":
-    # Example usage
-    from umpt_sam.config.model_config import UPFEConfig, MPPGConfig
+# if __name__ == "__main__":
+#     # Example usage
+#     from umpt_sam.config.model_config import UPFEConfig, MPPGConfig
 
-    model_config = UMPAModelConfig(
-        sam_checkpoint="sam3.pt",
-        embed_dim=256,
-        text_embed_dim=512,
-        freeze_image_encoder=True,
-        upfe=UPFEConfig(scoring_hidden_dim=256),
-        mppg=MPPGConfig(),
-    )
-    print("Model config:", model_config)
-    print("Building model...")
-    model = UMPAModel.from_config(model_config=model_config)
+#     model_config = UMPAModelConfig(
+#         sam_checkpoint="sam3.pt",
+#         embed_dim=256,
+#         text_embed_dim=512,
+#         freeze_image_encoder=True,
+#         upfe=UPFEConfig(scoring_hidden_dim=256),
+#         mppg=MPPGConfig(),
+#     )
+#     print("Model config:", model_config)
+#     print("Building model...")
+#     model = UMPAModel.from_config(model_config=model_config)
     
-    print("Model built.")
-    dummy_image = cv2.imread("mask.png")  # Replace with actual image path
-    dummy_image = cv2.resize(dummy_image, (1008, 1008))
-    dummy_image = torch.from_numpy(dummy_image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
-    dummy_boxes = torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float)
-    dummy_points = torch.tensor([[[504, 504]]], dtype=torch.float)
-    dummy_point_labels = torch.tensor([[1]])
-    dummy_captions = ["polyp"]
-    output = model(
-        image=dummy_image,
-        boxes=dummy_boxes,
-        points=dummy_points,
-        point_labels=dummy_point_labels,
-        captions=dummy_captions,
-    )
-    cv2.imwrite("pred_mask.png", (output['pred_masks'][0, 0].cpu().detach().numpy() * 255).astype('uint8'))
-    print(output['pred_masks'].shape, output['iou_predictions'])
+#     print("Model built.")
+#     dummy_image = cv2.imread("mask.png")  # Replace with actual image path
+#     dummy_image = cv2.resize(dummy_image, (1008, 1008))
+#     dummy_image = torch.from_numpy(dummy_image).permute(2, 0, 1).unsqueeze(0).float() / 255.0
+#     dummy_boxes = torch.tensor([[[100, 100, 200, 200]]], dtype=torch.float)
+#     dummy_points = torch.tensor([[[504, 504]]], dtype=torch.float)
+#     dummy_point_labels = torch.tensor([[1]])
+#     dummy_captions = ["polyp"]
+#     output = model(
+#         image=dummy_image,
+#         boxes=dummy_boxes,
+#         points=dummy_points,
+#         point_labels=dummy_point_labels,
+#         captions=dummy_captions,
+#     )
+#     cv2.imwrite("pred_mask.png", (output['pred_masks'][0, 0].cpu().detach().numpy() * 255).astype('uint8'))
+#     print(output['pred_masks'].shape, output['iou_predictions'])
