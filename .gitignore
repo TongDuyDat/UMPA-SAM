@@ -160,3 +160,18 @@ model_trained/
 tests/
 umpt_sam/data/*/*
 examples/*/*
+
+# ==============================
+# Experiment-related files (HIDE from git)
+# ==============================
+experiments/
+collect_experiment_results.py
+collect_logs.py
+collect_results.py
+evaluate_ablation.py
+train_ablation.py
+generate_report.py
+run_all_datasets.py
+all_results.json
+py310_export.yml
+docs/
