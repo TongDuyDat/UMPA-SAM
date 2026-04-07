@@ -34,7 +34,6 @@ The model accepts multiple prompt modalities — **bounding box, point, mask, an
 sam3/                          # Project root
 ├── main.py                    # Training script
 ├── requirements.txt           # Python dependencies
-├── py310_export.yml           # Conda environment export (Python 3.10)
 │
 ├── umpt_sam/                  # Core framework
 │   ├── config/                # Configuration dataclasses
@@ -50,9 +49,7 @@ sam3/                          # Project root
 │   └── umpa_model.py          # Model entry point (withheld)
 │
 ├── sam3/                      # SAM3 backbone (third-party)
-├── model_trained/             # Pre-trained checkpoints directory
-├── tests/                     # Unit tests
-└── docs/                      # Documentation & diagrams
+└── model_trained/             # Pre-trained checkpoints directory
 ```
 
 ---
@@ -79,15 +76,6 @@ cd UMPA-SAM
 
 ### 2. Create conda environment
 
-**Option A — From exported environment (recommended):**
-
-```bash
-conda env create -f py310_export.yml
-conda activate <env_name>
-```
-
-**Option B — From requirements.txt:**
-
 ```bash
 conda create -n umpa_sam python=3.10 -y
 conda activate umpa_sam
@@ -96,11 +84,21 @@ pip install -r requirements.txt
 
 ### 3. Download SAM3 checkpoint
 
-Place the SAM3 pre-trained checkpoint at:
+Download the SAM3 pre-trained checkpoint from [Hugging Face](https://huggingface.co/facebook/sam3.1) and place it at `model_trained/sam3.pt`.
 
+**Using CLI:**
+
+```bash
+mkdir -p model_trained
+# Option 1: Using huggingface-cli
+pip install huggingface_hub
+huggingface-cli download facebook/sam3.1 sam3.pt --local-dir model_trained/
+
+# Option 2: Using wget (direct link)
+wget -O model_trained/sam3.pt https://huggingface.co/facebook/sam3.1/resolve/main/sam3.pt
 ```
-model_trained/sam3.pt
-```
+
+> **Note:** You may need to accept the license on the [Hugging Face model page](https://huggingface.co/facebook/sam3.1) and log in via `huggingface-cli login` before downloading.
 
 ---
 
@@ -278,6 +276,12 @@ print(f"Dice: {metrics['dice']:.4f} | mIoU: {metrics['miou']:.4f}")
 ## Citation
 
 *To be released upon publication.*
+
+---
+
+## Acknowledgments
+
+This project uses [SAM 3 (Segment Anything Model)](https://github.com/facebookresearch/sam3) as its backbone. SAM 3 is developed by Meta AI and licensed under the [SAM License](LICENSE).
 
 ---
 
