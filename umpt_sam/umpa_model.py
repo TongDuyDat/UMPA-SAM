@@ -339,8 +339,9 @@ class UMPAModel(nn.Module):
             boxes=boxes_p,
             masks=masks_p,
         )
-        point_tokens = sparse_embs[0]
-        box_tokens = sparse_embs[1]
+        num_tokens = sparse_embs.shape[1]
+        point_tokens = sparse_embs[:, 0] if num_tokens > 0 else torch.zeros(sparse_embs.shape[0], sparse_embs.shape[-1], device=sparse_embs.device)
+        box_tokens = sparse_embs[:, 1] if num_tokens > 1 else torch.zeros(sparse_embs.shape[0], sparse_embs.shape[-1], device=sparse_embs.device)
 
         upfe_input: Dict[str, Optional[torch.Tensor]] = {
             "point_embeddings": point_tokens,
