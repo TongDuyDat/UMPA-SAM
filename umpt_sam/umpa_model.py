@@ -27,6 +27,7 @@ except ImportError:  # pragma: no cover
 from .config.model_config import UMPAModelConfig
 from .modules.modules import PromptPerturbation
 from .modules.upf_enconder import UnifiedPromptFusionEncoder
+from .modules.cascaded_fusion import CascadedPromptFusionEncoder
 
 
 class UMPAModel(nn.Module):
@@ -207,9 +208,13 @@ class UMPAModel(nn.Module):
         else:
             self.text_projection = nn.Linear(text_embed_dim, embed_dim)
 
-        self.upfe_encoder = UnifiedPromptFusionEncoder(
+        # self.upfe_encoder = UnifiedPromptFusionEncoder(
+        #     embed_dim=embed_dim,
+        #     scoting_network_hidden_dim=upfe_hidden_dim,
+        # )
+        self.upfe_encoder = CascadedPromptFusionEncoder(
             embed_dim=embed_dim,
-            scoting_network_hidden_dim=upfe_hidden_dim,
+            ffn_dim=upfe_hidden_dim,
         )
         self.perturbation = PromptPerturbation(**(perturbation_cfg or {}))
 
@@ -334,9 +339,12 @@ class UMPAModel(nn.Module):
             boxes=boxes_p,
             masks=masks_p,
         )
+        point_tokens = sparse_embs[0]
+        box_tokens = sparse_embs[1]
 
         upfe_input: Dict[str, Optional[torch.Tensor]] = {
-            "sparse_embeddings": sparse_embs,
+            "point_embeddings": point_tokens,
+            "box_embeddings": box_tokens,
             "mask_embeddings": dense_embs.flatten(2).permute(0, 2, 1),
             "text_embeddings": text_emb_p,
         }
@@ -347,7 +355,8 @@ class UMPAModel(nn.Module):
             e_fused = upfe_out
             prompt_weights = None
 
-        sparse_prompt_embeddings = torch.cat([sparse_embs, e_fused.unsqueeze(1)], dim=1)
+        # sparse_prompt_embeddings = torch.cat([sparse_embs, e_fused.unsqueeze(1)], dim=1)
+        sparse_prompt_embeddings = e_fused.unsqueeze(1)
         decoder_out = self.sam_mask_decoder(
             image_embeddings=image_embeddings,
             image_pe=image_pe,
