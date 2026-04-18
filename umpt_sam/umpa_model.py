@@ -339,13 +339,20 @@ class UMPAModel(nn.Module):
             boxes=boxes_p,
             masks=masks_p,
         )
-        num_tokens = sparse_embs.shape[1]
-        point_tokens = sparse_embs[:, 0] if num_tokens > 0 else torch.zeros(sparse_embs.shape[0], sparse_embs.shape[-1], device=sparse_embs.device)
-        box_tokens = sparse_embs[:, 1] if num_tokens > 1 else torch.zeros(sparse_embs.shape[0], sparse_embs.shape[-1], device=sparse_embs.device)
+
+        # Get per-modality embeddings for UPFE as in UMPA theory
+        point_embeddings = None
+        box_embeddings = None
+        if points_p is not None:
+            point_embeddings = self.prompt_encoder._embed_points(
+                points_p, point_labels_p, pad=(boxes_p is None)
+            )
+        if boxes_p is not None:
+            box_embeddings = self.prompt_encoder._embed_boxes(boxes_p)
 
         upfe_input: Dict[str, Optional[torch.Tensor]] = {
-            "point_embeddings": point_tokens,
-            "box_embeddings": box_tokens,
+            "point_embeddings": point_embeddings,
+            "box_embeddings": box_embeddings,
             "mask_embeddings": dense_embs.flatten(2).permute(0, 2, 1),
             "text_embeddings": text_emb_p,
         }
