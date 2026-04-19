@@ -29,6 +29,8 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
+import torch.multiprocessing
+torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -414,7 +416,7 @@ def parse_args():
     # Paths
     p.add_argument("--sam-checkpoint", type=str, default="model_trained/sam3.pt",
                    help="Path to SAM3 pre-trained checkpoint")
-    p.add_argument("--save-dir", type=str, default="checkpoints/full_train",
+    p.add_argument("--save-dir", type=str, default="checkpoints/tmf_umpa",
                    help="Base directory for saving results")
 
     # Model
