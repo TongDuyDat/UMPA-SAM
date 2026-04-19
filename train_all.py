@@ -140,7 +140,7 @@ def build_model(args, device: str) -> UMPAModel:
 
 def train_single_dataset(
     dataset_name: str,
-    save_base_dir: str = "checkpoints/full_train",
+    save_base_dir: str = "checkpoints/tmf_umpa",
     device: str = "cuda",
     dry_run: bool = False,
     sam_checkpoint: str = "model_trained/sam3.pt",
