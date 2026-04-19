@@ -42,10 +42,10 @@ from umpt_sam.losses.composer_loss import ComposerLoss
 from umpt_sam.training.phase_scheduler import PhaseScheduler
 from umpt_sam.training.trainer import UMPATrainer
 from umpt_sam.training.evaluate import evaluate
-from umpt_sam.training.ablation_results import AblationResultsManager, EpochRecord
 from umpt_sam.data.polyp_dataset import PolypDataset, DatasetConfig, collate_fn
 from umpt_sam.data.dataset_registry import get_dataset_config, list_datasets
 from umpt_sam.data.polyp_transforms import POLYP_TRANSFORMS
+from umpt_sam.common import EpochRecord, ResultsManager
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -181,9 +181,8 @@ def train_single_dataset(
     optimizer = optim.AdamW(model.parameters(), lr=train_config.phase1.lr, weight_decay=1e-4)
     scheduler = PhaseScheduler(train_config=train_config)
 
-    # 5. Results manager (per-dataset log directory)
+    # 5. Save directory (per-dataset)
     dataset_save_dir = os.path.join(save_base_dir, dataset_name)
-    results_manager = AblationResultsManager(base_dir=save_base_dir)
 
     # 6. Trainer (UMPATrainer creates run_YYYYMMDD_HHMMSS subdir)
     trainer = UMPATrainer(
@@ -261,7 +260,7 @@ def train_single_dataset(
             val_miou=val_miou,
         )
         training_history.append(record)
-        results_manager.save_training_history(trainer.save_dir, training_history)
+        ResultsManager.save_training_history(trainer.save_dir, training_history)
 
         log_str = (
             f"[LOG] | Epoch {epoch:03d} | {phase_name:10s} "
@@ -313,10 +312,10 @@ def train_single_dataset(
                 trainer._write_log(f"   - {key}: {val}")
 
         # Save test results JSON
-        results_manager.save_test_results(
+        ResultsManager.save_test_results(
             save_dir=trainer.save_dir,
             metrics=final_metrics,
-            scenario_name=dataset_name,
+            name=dataset_name,
         )
         trainer._write_log(f"✅ Kết quả đã lưu tại: {trainer.save_dir}/test_results.json")
     else:
