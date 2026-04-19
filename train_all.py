@@ -29,8 +29,8 @@ from datetime import datetime
 from pathlib import Path
 
 import torch
-import torch.multiprocessing
-torch.multiprocessing.set_sharing_strategy('file_system')
+# import torch.multiprocessing
+# torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
