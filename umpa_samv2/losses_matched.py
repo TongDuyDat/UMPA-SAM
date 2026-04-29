@@ -103,8 +103,9 @@ class HungarianMatcher(nn.Module):
         indices = []
 
         for b in range(B):
+            # Cast to float32 to avoid AMP float16 NaN issues
             # Classification cost: BCE-like
-            out_prob = pred_logits[b].squeeze(-1).sigmoid()  # [N_q]
+            out_prob = pred_logits[b].squeeze(-1).float().sigmoid()  # [N_q]
             cost_class = -out_prob.unsqueeze(1)  # lower = better match
 
             # Box cost: L1
@@ -116,7 +117,7 @@ class HungarianMatcher(nn.Module):
                 cost_bbox = torch.zeros(N_q, 1, device=pred_logits.device)
 
             # Mask cost: Dice
-            pred_m = pred_masks[b].flatten(1).sigmoid()  # [N_q, H*W]
+            pred_m = pred_masks[b].flatten(1).float().sigmoid()  # [N_q, H*W]
             gt_m = gt_masks[b].flatten(1).float()  # [1, H*W]
             numerator = 2 * torch.mm(pred_m, gt_m.T)  # [N_q, 1]
             denominator = pred_m.sum(-1, keepdim=True) + gt_m.sum(-1)

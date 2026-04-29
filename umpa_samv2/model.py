@@ -286,10 +286,15 @@ class UMPAv2Model(nn.Module):
         if masks_for_enc is not None:
             mask_embs = self.geometry_encoder.encode_masks(masks_for_enc)  # [B, D, H_m, W_m]
 
-        # ── Phase 4: Text projection (trainable) ─────────────────────
+        # ── Phase 4: Text projection (skip if CLIP dim == embed_dim) ────
         txt_feats = None
         if lang_feats is not None:
-            txt_feats = self.text_projection(lang_feats)  # [B, S, D]
+            # lang_feats: [S, B, text_dim] → [B, S, text_dim]
+            txt_feats_bf = lang_feats.permute(1, 0, 2)
+            if txt_feats_bf.shape[-1] != self.pim.embed_dim:
+                txt_feats = self.text_projection(lang_feats)  # [B, S, D]
+            else:
+                txt_feats = txt_feats_bf  # already correct dim, skip projection
 
         # ── Phase 5: PIM v2 (trainable ⭐) ───────────────────────────
         # Flatten mask for PIM attention
