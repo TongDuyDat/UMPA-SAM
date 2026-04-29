@@ -413,7 +413,13 @@ class UMPAv2Model(nn.Module):
         if return_all_queries:
             output["all_pred_masks"] = all_pred_masks
 
-        return output
+        # Cast to float32 — prevents float16 overflow (from untrained PIM
+        # tokens causing large attention scores in transformer) from
+        # propagating NaN to loss/eval.  AMP backward handles the cast.
+        return {
+            k: v.float() if isinstance(v, torch.Tensor) else v
+            for k, v in output.items()
+        }
 
     # ── K-perturbation for consistency training ──────────────────────
 

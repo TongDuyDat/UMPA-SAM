@@ -211,6 +211,7 @@ class UMPAv2SAM3Trainer:
             amp_dtype = (
                 torch.bfloat16 if cfg.amp_dtype == "bfloat16" else torch.float16
             )
+            # Forward pass in mixed precision
             with torch.amp.autocast(
                 self.device, enabled=cfg.amp_enabled, dtype=amp_dtype,
             ):
@@ -246,13 +247,15 @@ class UMPAv2SAM3Trainer:
                         p_list.append(pm)
                     perturbed_masks = torch.stack(p_list, dim=1)
 
-                loss_dict = self.matched_loss(
-                    outputs=outputs,
-                    gt_masks=gt_masks,
-                    perturbed_masks=perturbed_masks,
-                    gate_weights=outputs.get("gate_weights"),
-                )
-                total_loss = loss_dict["total_loss"]
+            # Loss in float32 (outside autocast) — prevents
+            # float16 overflow in sigmoid/matmul during Hungarian matching
+            loss_dict = self.matched_loss(
+                outputs=outputs,
+                gt_masks=gt_masks,
+                perturbed_masks=perturbed_masks,
+                gate_weights=outputs.get("gate_weights"),
+            )
+            total_loss = loss_dict["total_loss"]
 
             # Gradient accumulation
             scaled_loss = total_loss / cfg.gradient_accumulation_steps
