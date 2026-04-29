@@ -154,7 +154,7 @@ def parse_args():
     p.add_argument("--sam-checkpoint", default="model_trained/sam3.pt")
     p.add_argument("--save-dir", default="checkpoints/umpa_v2_method2a")
     p.add_argument("--embed-dim", type=int, default=256)
-    p.add_argument("--text-embed-dim", type=int, default=512)
+    p.add_argument("--text-embed-dim", type=int, default=256)
 
     # Schedule
     p.add_argument("--total-epochs", type=int, default=20)

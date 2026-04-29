@@ -253,7 +253,7 @@ def parse_args():
 
     # Model
     p.add_argument("--embed-dim", type=int, default=256)
-    p.add_argument("--text-embed-dim", type=int, default=512)
+    p.add_argument("--text-embed-dim", type=int, default=256)
 
     # Training schedule
     p.add_argument("--batch-size", type=int, default=4)

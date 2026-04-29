@@ -72,7 +72,7 @@ class UMPAv2ModelConfig:
 
     # Architecture
     embed_dim: int = 256
-    text_embed_dim: int = 512
+    text_embed_dim: int = 256  # SAM3 language backbone output dim
     image_size: int = 1008
 
     # Freeze control — Pipeline A components
