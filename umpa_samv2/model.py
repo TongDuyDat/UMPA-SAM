@@ -272,6 +272,8 @@ class UMPAv2Model(nn.Module):
         mask_embs = None
 
         if boxes_p is not None:
+            if boxes_p.ndim == 2:
+                boxes_p = boxes_p.unsqueeze(1)  # [B, 4] → [B, 1, 4]
             box_embs = self.geometry_encoder.encode_boxes(boxes_p)  # [B, 2·N, D]
 
         if points_p is not None:
