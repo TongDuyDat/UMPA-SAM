@@ -204,7 +204,7 @@ class UMPAv2MatchedLoss(nn.Module):
             cost_bbox=loss_bbox_weight,
             cost_mask=loss_dice_weight,
         )
-        self.consistency_loss_fn = MultiPromptConsistencyLoss(weight=1.0)
+        self.consistency_loss_fn = MultiPromptConsistencyLoss()
         self.importance_reg = ImportanceRegLoss(weight=importance_reg_weight)
 
     def forward(
