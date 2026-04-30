@@ -107,6 +107,11 @@ class UMPAv2Model(nn.Module):
         if ckpt is not None:
             model.load_weights(ckpt, map_location=map_location)
 
+        # SAM3 build may set default dtype to bfloat16, contaminating
+        # all new modules (PIM, TextProjection).  Normalize everything
+        # to float32 — autocast handles mixed-precision during forward.
+        model.float()
+
         return model
 
     @classmethod
