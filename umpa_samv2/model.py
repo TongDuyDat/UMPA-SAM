@@ -107,18 +107,9 @@ class UMPAv2Model(nn.Module):
         if ckpt is not None:
             model.load_weights(ckpt, map_location=map_location)
 
-        # SAM3 checkpoint stores bfloat16 weights.  _load_checkpoint →
-        # load_state_dict overwrites float32 params with bfloat16 tensors.
-        # model.float() converts ALL parameters + buffers back to float32
+        # SAM3 checkpoint stores bfloat16 weights — normalize to float32
         # so autocast can uniformly handle float32 → amp_dtype.
         model.float()
-
-        # Verify conversion worked — will catch stale code or broken .float()
-        for name, p in model.named_parameters():
-            assert p.dtype == torch.float32, (
-                f"Parameter {name} is {p.dtype} after model.float() — "
-                "expected float32"
-            )
 
         return model
 

@@ -111,7 +111,7 @@ class PIMv2(BasePIM):
     @staticmethod
     def _zero_pool(embed_dim: int, batch_size: int, device: torch.device) -> Tensor:
         """Return a [B, D] zero vector."""
-        return torch.zeros(batch_size, embed_dim, device=device)
+        return torch.zeros(batch_size, embed_dim, device=device, dtype=torch.float32)
 
     # ── forward ──────────────────────────────────────────────────────
 
