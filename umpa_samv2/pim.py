@@ -115,7 +115,7 @@ class PIMv2(BasePIM):
 
     # ── forward ──────────────────────────────────────────────────────
 
-    @torch.amp.custom_fwd(cast_inputs=torch.float32)
+    @torch.amp.custom_fwd(device_type="cuda", cast_inputs=torch.float32)
     def forward(
         self,
         txt_feats: Optional[Tensor],
