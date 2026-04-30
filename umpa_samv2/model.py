@@ -296,12 +296,23 @@ class UMPAv2Model(nn.Module):
             else:
                 txt_feats = txt_feats_bf  # already correct dim, skip projection
 
+        # ── Normalize dtype ──────────────────────────────────────────
+        # Frozen SAM3 backbone may store weights in bfloat16, producing
+        # bfloat16 outputs.  Under autocast(float16), PIM weights become
+        # float16.  Cast all frozen outputs to float32 so autocast can
+        # uniformly downcast to the target AMP dtype.
+        if box_embs is not None:
+            box_embs = box_embs.float()
+        if point_embs is not None:
+            point_embs = point_embs.float()
+        if txt_feats is not None:
+            txt_feats = txt_feats.float()
+
         # ── Phase 5: PIM v2 (trainable ⭐) ───────────────────────────
         # Flatten mask for PIM attention
         mask_embs_flat = None
         if mask_embs is not None:
-            B_m, D_m, H_m, W_m = mask_embs.shape
-            mask_embs_flat = mask_embs.flatten(2).permute(0, 2, 1)  # [B, H_m*W_m, D]
+            mask_embs_flat = mask_embs.float().flatten(2).permute(0, 2, 1)  # [B, H_m*W_m, D]
 
         # Determine permutation order
         _permute_order = permute_order
