@@ -264,10 +264,9 @@ class UMPAv2Model(nn.Module):
         # ── Phase 2b: Text encoding (frozen) ─────────────────────────
         lang_feats = None
         if captions_p is not None:
-            with torch.no_grad():
-                text_out = self.image_encoder.forward_text(
-                    captions_p, device=image.device,
-                )
+            text_out = self.image_encoder.forward_text(
+                captions_p, device=image.device,
+            )
             lang_feats = text_out["language_features"]  # [S, B, 512]
 
         # ── Phase 3: Geometry encoding (frozen) ──────────────────────
@@ -466,8 +465,8 @@ class UMPAv2Model(nn.Module):
         vis_feat_sizes = [x.shape[-2:] for x in vis_pos_enc]  # [(H, W)]
 
         # NxCxHxW => HWxNxC (batch-first => seq-first)
-        img_feats = [x.flatten(2).permute(2, 0, 1) for x in vis_feats]
-        img_pos_embeds = [x.flatten(2).permute(2, 0, 1) for x in vis_pos_enc]
+        img_feats = [x.float().flatten(2).permute(2, 0, 1) for x in vis_feats]
+        img_pos_embeds = [x.float().flatten(2).permute(2, 0, 1) for x in vis_pos_enc]
 
         return img_feats, img_pos_embeds, vis_feat_sizes
 
